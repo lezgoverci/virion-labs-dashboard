@@ -365,6 +365,116 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          id: string
+          user_id: string
+          bio: string | null
+          phone_number: string | null
+          twitter_handle: string | null
+          instagram_handle: string | null
+          youtube_channel: string | null
+          discord_username: string | null
+          website_url: string | null
+          email_notifications_new_referral: boolean
+          email_notifications_link_clicks: boolean
+          email_notifications_weekly_reports: boolean
+          email_notifications_product_updates: boolean
+          push_notifications_new_referral: boolean
+          push_notifications_link_clicks: boolean
+          push_notifications_weekly_reports: boolean
+          push_notifications_product_updates: boolean
+          profile_visibility: string
+          show_earnings: boolean
+          show_referral_count: boolean
+          webhook_url: string | null
+          webhook_events: string[] | null
+          api_key_regenerated_at: string | null
+          theme: string
+          language: string
+          timezone: string
+          currency: string
+          two_factor_enabled: boolean
+          login_notifications: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          bio?: string | null
+          phone_number?: string | null
+          twitter_handle?: string | null
+          instagram_handle?: string | null
+          youtube_channel?: string | null
+          discord_username?: string | null
+          website_url?: string | null
+          email_notifications_new_referral?: boolean
+          email_notifications_link_clicks?: boolean
+          email_notifications_weekly_reports?: boolean
+          email_notifications_product_updates?: boolean
+          push_notifications_new_referral?: boolean
+          push_notifications_link_clicks?: boolean
+          push_notifications_weekly_reports?: boolean
+          push_notifications_product_updates?: boolean
+          profile_visibility?: string
+          show_earnings?: boolean
+          show_referral_count?: boolean
+          webhook_url?: string | null
+          webhook_events?: string[] | null
+          api_key_regenerated_at?: string | null
+          theme?: string
+          language?: string
+          timezone?: string
+          currency?: string
+          two_factor_enabled?: boolean
+          login_notifications?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          bio?: string | null
+          phone_number?: string | null
+          twitter_handle?: string | null
+          instagram_handle?: string | null
+          youtube_channel?: string | null
+          discord_username?: string | null
+          website_url?: string | null
+          email_notifications_new_referral?: boolean
+          email_notifications_link_clicks?: boolean
+          email_notifications_weekly_reports?: boolean
+          email_notifications_product_updates?: boolean
+          push_notifications_new_referral?: boolean
+          push_notifications_link_clicks?: boolean
+          push_notifications_weekly_reports?: boolean
+          push_notifications_product_updates?: boolean
+          profile_visibility?: string
+          show_earnings?: boolean
+          show_referral_count?: boolean
+          webhook_url?: string | null
+          webhook_events?: string[] | null
+          api_key_regenerated_at?: string | null
+          theme?: string
+          language?: string
+          timezone?: string
+          currency?: string
+          two_factor_enabled?: boolean
+          login_notifications?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -418,6 +528,10 @@ export type ReferralAnalyticsUpdate = Database['public']['Tables']['referral_ana
 export type Referral = Database['public']['Tables']['referrals']['Row']
 export type ReferralInsert = Database['public']['Tables']['referrals']['Insert']
 export type ReferralUpdate = Database['public']['Tables']['referrals']['Update']
+
+export type UserSettings = Database['public']['Tables']['user_settings']['Row']
+export type UserSettingsInsert = Database['public']['Tables']['user_settings']['Insert']
+export type UserSettingsUpdate = Database['public']['Tables']['user_settings']['Update']
 
 // Extended Bot type with client information
 export interface BotWithClient extends Bot {
