@@ -140,6 +140,128 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_links: {
+        Row: {
+          id: string
+          influencer_id: string
+          title: string
+          description: string | null
+          platform: string
+          original_url: string
+          referral_code: string
+          referral_url: string
+          thumbnail_url: string | null
+          clicks: number
+          conversions: number
+          earnings: number
+          conversion_rate: number | null
+          is_active: boolean
+          expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          influencer_id: string
+          title: string
+          description?: string | null
+          platform: string
+          original_url: string
+          referral_code: string
+          referral_url: string
+          thumbnail_url?: string | null
+          clicks?: number
+          conversions?: number
+          earnings?: number
+          is_active?: boolean
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          influencer_id?: string
+          title?: string
+          description?: string | null
+          platform?: string
+          original_url?: string
+          referral_code?: string
+          referral_url?: string
+          thumbnail_url?: string | null
+          clicks?: number
+          conversions?: number
+          earnings?: number
+          is_active?: boolean
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_links_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_analytics: {
+        Row: {
+          id: string
+          link_id: string
+          event_type: string
+          user_agent: string | null
+          ip_address: string | null
+          referrer: string | null
+          country: string | null
+          city: string | null
+          device_type: string | null
+          browser: string | null
+          conversion_value: number
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          link_id: string
+          event_type: string
+          user_agent?: string | null
+          ip_address?: string | null
+          referrer?: string | null
+          country?: string | null
+          city?: string | null
+          device_type?: string | null
+          browser?: string | null
+          conversion_value?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          link_id?: string
+          event_type?: string
+          user_agent?: string | null
+          ip_address?: string | null
+          referrer?: string | null
+          country?: string | null
+          city?: string | null
+          device_type?: string | null
+          browser?: string | null
+          conversion_value?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_analytics_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "referral_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -191,6 +313,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 export type UserRole = 'influencer' | 'admin' | 'client'
 export type BotStatus = 'Online' | 'Offline' | 'Maintenance' | 'Error'
 export type BotTemplate = 'standard' | 'advanced' | 'custom'
+export type Platform = 'YouTube' | 'Instagram' | 'TikTok' | 'Twitter' | 'Facebook' | 'LinkedIn' | 'Other'
+export type AnalyticsEventType = 'click' | 'conversion'
 
 export interface UserProfile {
   id: string
@@ -210,11 +334,31 @@ export type Bot = Database['public']['Tables']['bots']['Row']
 export type BotInsert = Database['public']['Tables']['bots']['Insert']
 export type BotUpdate = Database['public']['Tables']['bots']['Update']
 
+export type ReferralLink = Database['public']['Tables']['referral_links']['Row']
+export type ReferralLinkInsert = Database['public']['Tables']['referral_links']['Insert']
+export type ReferralLinkUpdate = Database['public']['Tables']['referral_links']['Update']
+
+export type ReferralAnalytics = Database['public']['Tables']['referral_analytics']['Row']
+export type ReferralAnalyticsInsert = Database['public']['Tables']['referral_analytics']['Insert']
+export type ReferralAnalyticsUpdate = Database['public']['Tables']['referral_analytics']['Update']
+
 // Extended Bot type with client information
 export interface BotWithClient extends Bot {
   client?: {
     id: string
     name: string
     industry: string
+  }
+}
+
+// Extended ReferralLink type with analytics
+export interface ReferralLinkWithAnalytics extends ReferralLink {
+  analytics?: {
+    totalClicks: number
+    totalConversions: number
+    conversionRate: number
+    totalEarnings: number
+    recentClicks: number
+    recentConversions: number
   }
 } 
