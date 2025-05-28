@@ -59,12 +59,6 @@ export function Sidebar() {
       active: pathname === "/referrals",
     },
     {
-      title: "Analytics",
-      href: "/analytics",
-      icon: Activity,
-      active: pathname === "/analytics",
-    },
-    {
       title: "Settings",
       href: "/settings",
       icon: Settings,
