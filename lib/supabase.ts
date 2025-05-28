@@ -262,6 +262,79 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          id: string
+          influencer_id: string
+          referral_link_id: string
+          referred_user_id: string | null
+          name: string
+          email: string
+          discord_id: string | null
+          age: number | null
+          status: string
+          source_platform: string
+          conversion_value: number
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          influencer_id: string
+          referral_link_id: string
+          referred_user_id?: string | null
+          name: string
+          email: string
+          discord_id?: string | null
+          age?: number | null
+          status?: string
+          source_platform: string
+          conversion_value?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          influencer_id?: string
+          referral_link_id?: string
+          referred_user_id?: string | null
+          name?: string
+          email?: string
+          discord_id?: string | null
+          age?: number | null
+          status?: string
+          source_platform?: string
+          conversion_value?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referral_link_id_fkey"
+            columns: ["referral_link_id"]
+            isOneToOne: false
+            referencedRelation: "referral_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -342,6 +415,10 @@ export type ReferralAnalytics = Database['public']['Tables']['referral_analytics
 export type ReferralAnalyticsInsert = Database['public']['Tables']['referral_analytics']['Insert']
 export type ReferralAnalyticsUpdate = Database['public']['Tables']['referral_analytics']['Update']
 
+export type Referral = Database['public']['Tables']['referrals']['Row']
+export type ReferralInsert = Database['public']['Tables']['referrals']['Insert']
+export type ReferralUpdate = Database['public']['Tables']['referrals']['Update']
+
 // Extended Bot type with client information
 export interface BotWithClient extends Bot {
   client?: {
@@ -360,5 +437,15 @@ export interface ReferralLinkWithAnalytics extends ReferralLink {
     totalEarnings: number
     recentClicks: number
     recentConversions: number
+  }
+}
+
+// Extended Referral type with link information
+export interface ReferralWithLink extends Referral {
+  referral_link?: {
+    id: string
+    title: string
+    platform: string
+    referral_code: string
   }
 } 
