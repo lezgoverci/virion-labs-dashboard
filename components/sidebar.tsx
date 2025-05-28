@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
   BarChart3,
   LinkIcon,
@@ -11,33 +11,16 @@ import {
   Activity,
   Bot,
   Database,
-  ChevronDown,
-  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/components/auth-provider"
 
 export function Sidebar() {
-  const { profile, signOut } = useAuth()
+  const { profile } = useAuth()
   const pathname = usePathname()
-  const router = useRouter()
   const isAdmin = profile?.role === "admin"
   const isClient = profile?.role === "client"
-
-  const handleSignOut = async () => {
-    await signOut()
-    router.push("/login")
-  }
 
   const influencerNavItems = [
     {
@@ -170,37 +153,16 @@ export function Sidebar() {
 
       {/* User Profile */}
       <div className="border-t p-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-2 px-2 hover:bg-muted">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
-                <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start text-left">
-                <span className="font-medium">{profile?.full_name}</span>
-                <span className="text-xs text-muted-foreground capitalize">{profile?.role}</span>
-              </div>
-              <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="px-2 py-1.5">
-              <div className="flex flex-col">
-                <span className="font-medium">{profile?.full_name}</span>
-                <span className="text-xs text-muted-foreground">{profile?.email}</span>
-                <span className="text-xs text-muted-foreground capitalize">{profile?.role}</span>
-              </div>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-3 px-2 py-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
+            <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col items-start text-left min-w-0 flex-1">
+            <span className="font-medium text-sm truncate">{profile?.full_name}</span>
+            <span className="text-xs text-muted-foreground capitalize">{profile?.role}</span>
+          </div>
+        </div>
       </div>
     </div>
   )

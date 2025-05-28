@@ -10,14 +10,73 @@ import { useDashboardData } from "@/hooks/use-dashboard-data"
 
 export function InfluencerDashboard() {
   const { profile } = useAuth()
-  const { stats, links, referrals, recentActivity, loading, error, refetch } = useDashboardData()
+  const { stats, links, referrals, recentActivity, loading, error, refresh } = useDashboardData()
+
+  const handleRefresh = () => {
+    refresh()
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading dashboard data...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-8 w-64 bg-muted animate-pulse rounded"></div>
+            <div className="h-4 w-96 bg-muted animate-pulse rounded"></div>
+          </div>
+          <div className="h-9 w-20 bg-muted animate-pulse rounded"></div>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1"></div>
+                <div className="h-3 w-20 bg-muted animate-pulse rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <div className="h-6 w-32 bg-muted animate-pulse rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="rounded-full bg-muted h-10 w-10 animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
+                      <div className="h-3 w-48 bg-muted animate-pulse rounded"></div>
+                    </div>
+                    <div className="h-3 w-16 bg-muted animate-pulse rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="col-span-3">
+            <CardHeader>
+              <div className="h-6 w-24 bg-muted animate-pulse rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+                    <div className="h-4 w-12 bg-muted animate-pulse rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
@@ -34,7 +93,7 @@ export function InfluencerDashboard() {
               variant="outline" 
               size="sm" 
               className="ml-2"
-              onClick={refetch}
+              onClick={handleRefresh}
             >
               <RefreshCw className="h-4 w-4 mr-1" />
               Retry
@@ -52,7 +111,7 @@ export function InfluencerDashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Welcome back, {profile?.full_name} 👋</h1>
           <p className="text-muted-foreground">Here's an overview of your referral performance.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={refetch}>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>

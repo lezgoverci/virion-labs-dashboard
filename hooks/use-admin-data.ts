@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 
+// Simple cache to prevent redundant API calls
+const dataCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 30000 // 30 seconds
+
 export interface AdminStats {
   totalClients: number
   totalBots: number
@@ -54,36 +58,57 @@ export function useAdminData() {
     fetchAdminData()
   }, [])
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = async (retryCount = 0, forceRefresh = false) => {
+    // Check cache first (unless force refresh is requested)
+    const cacheKey = 'admin-data'
+    if (!forceRefresh) {
+      const cached = dataCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        const { stats, clients, bots, adminActivity } = cached.data
+        setStats(stats)
+        setClients(clients)
+        setBots(bots)
+        setAdminActivity(adminActivity)
+        setLoading(false)
+        return
+      }
+    }
+
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch clients data
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // Make parallel queries instead of sequential
+      const [clientsResponse, botsResponse, usersResponse] = await Promise.all([
+        supabase
+          .from('clients')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50), // Add pagination limit
 
-      if (clientsError) throw clientsError
+        supabase
+          .from('bots')
+          .select(`
+            *,
+            clients!inner(name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(50), // Add pagination limit
 
-      // Fetch bots data with client information
-      const { data: botsData, error: botsError } = await supabase
-        .from('bots')
-        .select(`
-          *,
-          clients!inner(name)
-        `)
-        .order('created_at', { ascending: false })
+        supabase
+          .from('user_profiles')
+          .select('id, role, created_at')
+          .limit(1000) // Reasonable limit for user count
+      ])
 
-      if (botsError) throw botsError
+      // Check for errors
+      if (clientsResponse.error) throw clientsResponse.error
+      if (botsResponse.error) throw botsResponse.error
+      if (usersResponse.error) throw usersResponse.error
 
-      // Fetch user profiles for total active users
-      const { data: usersData, error: usersError } = await supabase
-        .from('user_profiles')
-        .select('id, role, created_at')
-
-      if (usersError) throw usersError
+      const { data: clientsData } = clientsResponse
+      const { data: botsData } = botsResponse
+      const { data: usersData } = usersResponse
 
       // Process clients data
       const processedClients: ClientData[] = (clientsData || []).map(client => ({
@@ -143,19 +168,43 @@ export function useAdminData() {
         }
       ]
 
-      setStats({
+      const calculatedStats = {
         totalClients,
         totalBots,
         totalActiveUsers,
         mostActiveServer
-      })
+      }
 
+      setStats(calculatedStats)
       setClients(processedClients)
       setBots(processedBots)
       setAdminActivity(recentActivity)
 
+      // Cache the result with the calculated values
+      dataCache.set(cacheKey, {
+        data: {
+          stats: calculatedStats,
+          clients: processedClients,
+          bots: processedBots,
+          adminActivity: recentActivity
+        },
+        timestamp: Date.now()
+      })
+
     } catch (err) {
       console.error('Error fetching admin data:', err)
+      
+      // Retry logic for network errors
+      if (retryCount < 2 && (err instanceof Error && (
+        err.message.includes('network') || 
+        err.message.includes('timeout') ||
+        err.message.includes('fetch')
+      ))) {
+        console.log(`Retrying admin data fetch (attempt ${retryCount + 1})`)
+        setTimeout(() => fetchAdminData(retryCount + 1), 1000 * (retryCount + 1))
+        return
+      }
+      
       setError(err instanceof Error ? err.message : 'Failed to fetch admin data')
     } finally {
       setLoading(false)
@@ -183,6 +232,7 @@ export function useAdminData() {
     adminActivity,
     loading,
     error,
-    refetch: fetchAdminData
+    refetch: () => fetchAdminData(0, false),
+    refresh: () => fetchAdminData(0, true)
   }
 } 

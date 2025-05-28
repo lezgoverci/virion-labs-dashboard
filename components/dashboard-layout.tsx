@@ -17,6 +17,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/components/auth-provider"
 import { Sidebar } from "@/components/sidebar"
+import { PerformanceMonitor } from "@/components/performance-monitor"
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { profile, signOut } = useAuth()
@@ -26,6 +27,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     await signOut()
     router.push("/login")
+  }
+
+  const handleSettingsClick = () => {
+    router.push("/settings")
   }
 
   const getDashboardTitle = () => {
@@ -92,7 +97,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSettingsClick}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
@@ -108,6 +113,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6 w-full max-w-none">{children}</main>
       </div>
+      
+      <PerformanceMonitor />
     </div>
   )
 }

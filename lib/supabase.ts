@@ -491,7 +491,26 @@ export type Database = {
   }
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  global: {
+    headers: {
+      'x-client-info': 'virion-labs-dashboard'
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
+})
 
 export type UserRole = 'influencer' | 'admin' | 'client'
 export type BotStatus = 'Online' | 'Offline' | 'Maintenance' | 'Error'
@@ -503,7 +522,7 @@ export interface UserProfile {
   id: string
   email: string
   full_name: string
-  avatar_url?: string
+  avatar_url: string | null
   role: UserRole
   created_at: string
   updated_at: string

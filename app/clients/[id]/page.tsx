@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ClientDetailPage } from "@/components/client-detail-page"
+import { ProtectedRoute } from "@/components/protected-route"
 
 interface ClientPageProps {
   params: {
@@ -9,8 +10,10 @@ interface ClientPageProps {
 
 export default function ClientPage({ params }: ClientPageProps) {
   return (
-    <DashboardLayout>
-      <ClientDetailPage clientId={params.id} />
-    </DashboardLayout>
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <DashboardLayout>
+        <ClientDetailPage clientId={params.id} />
+      </DashboardLayout>
+    </ProtectedRoute>
   )
 } 

@@ -1,8 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/components/auth-provider"
+
+// Simple cache to prevent redundant API calls
+const dataCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 30000 // 30 seconds
 
 export interface DashboardStats {
   totalClicks: number
@@ -65,33 +69,57 @@ export function useDashboardData() {
     fetchDashboardData()
   }, [user])
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (retryCount = 0, forceRefresh = false) => {
     if (!user) return
+
+    // Check cache first (unless force refresh is requested)
+    const cacheKey = `dashboard-${user.id}`
+    if (!forceRefresh) {
+      const cached = dataCache.get(cacheKey)
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log('Using cached dashboard data')
+        const { stats, links, referrals, recentActivity } = cached.data
+        setStats(stats)
+        setLinks(links)
+        setReferrals(referrals)
+        setRecentActivity(recentActivity)
+        setLoading(false)
+        return
+      }
+    } else {
+      console.log('Force refresh requested, bypassing cache')
+    }
 
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch referral links
-      const { data: linksData, error: linksError } = await supabase
-        .from('referral_links')
-        .select('*')
-        .eq('influencer_id', user.id)
-        .order('created_at', { ascending: false })
+      // Make parallel queries instead of sequential
+      const [linksResponse, referralsResponse] = await Promise.all([
+        supabase
+          .from('referral_links')
+          .select('*')
+          .eq('influencer_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50), // Add pagination limit
+        
+        supabase
+          .from('referrals')
+          .select(`
+            *,
+            referral_links!inner(title, platform)
+          `)
+          .eq('influencer_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100) // Add pagination limit
+      ])
 
-      if (linksError) throw linksError
+      // Check for errors
+      if (linksResponse.error) throw linksResponse.error
+      if (referralsResponse.error) throw referralsResponse.error
 
-      // Fetch referrals
-      const { data: referralsData, error: referralsError } = await supabase
-        .from('referrals')
-        .select(`
-          *,
-          referral_links!inner(title, platform)
-        `)
-        .eq('influencer_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (referralsError) throw referralsError
+      const { data: linksData } = linksResponse
+      const { data: referralsData } = referralsResponse
 
       // Process links data
       const processedLinks: LinkData[] = (linksData || []).map(link => ({
@@ -152,7 +180,7 @@ export function useDashboardData() {
           }
         })
 
-      setStats({
+      const calculatedStats = {
         totalClicks,
         totalConversions,
         totalEarnings,
@@ -162,14 +190,39 @@ export function useDashboardData() {
           title: topPerformingLink.title,
           conversions: topPerformingLink.conversions
         } : null
-      })
+      }
 
+      setStats(calculatedStats)
       setLinks(processedLinks)
       setReferrals(processedReferrals)
       setRecentActivity(recentActivityData)
 
+      // Cache the result with the calculated values
+      dataCache.set(cacheKey, {
+        data: {
+          stats: calculatedStats,
+          links: processedLinks,
+          referrals: processedReferrals,
+          recentActivity: recentActivityData
+        },
+        timestamp: Date.now()
+      })
+      console.log('Cached new dashboard data')
+
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
+      
+      // Retry logic for network errors
+      if (retryCount < 2 && (err instanceof Error && (
+        err.message.includes('network') || 
+        err.message.includes('timeout') ||
+        err.message.includes('fetch')
+      ))) {
+        console.log(`Retrying dashboard data fetch (attempt ${retryCount + 1})`)
+        setTimeout(() => fetchDashboardData(retryCount + 1), 1000 * (retryCount + 1))
+        return
+      }
+      
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data')
     } finally {
       setLoading(false)
@@ -197,6 +250,7 @@ export function useDashboardData() {
     recentActivity,
     loading,
     error,
-    refetch: fetchDashboardData
+    refetch: () => fetchDashboardData(0, false),
+    refresh: () => fetchDashboardData(0, true)
   }
 } 

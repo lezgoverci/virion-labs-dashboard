@@ -90,6 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    // Immediately clear state to prevent any UI flicker
+    setUser(null)
+    setProfile(null)
+    setLoading(false)
+    
+    // Then sign out from Supabase
     await supabase.auth.signOut()
   }
 
