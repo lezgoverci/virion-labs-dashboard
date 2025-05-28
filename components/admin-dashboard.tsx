@@ -1,20 +1,62 @@
 "use client"
 
-import { Bot, Server, User, Users } from "lucide-react"
+import { Bot, Server, User, Users, RefreshCw, AlertCircle, BotIcon, ServerIcon, UserIcon, SettingsIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/components/auth-provider"
+import { useAdminData, type ClientData, type BotData } from "@/hooks/use-admin-data"
 
 export function AdminDashboard() {
   const { profile } = useAuth()
+  const { stats, clients, bots, adminActivity, loading, error, refetch } = useAdminData()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading admin dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load admin data: {error}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2"
+              onClick={refetch}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Welcome back, {profile?.full_name} 👋</h1>
-        <p className="text-muted-foreground">Here's an overview of all activity across clients.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Welcome back, {profile?.full_name} 👋</h1>
+          <p className="text-muted-foreground">Here's an overview of all activity across clients.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={refetch}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -24,8 +66,8 @@ export function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
+            <div className="text-2xl font-bold">{stats.totalClients}</div>
+            <p className="text-xs text-muted-foreground">Active clients</p>
           </CardContent>
         </Card>
         <Card>
@@ -34,8 +76,8 @@ export function AdminDashboard() {
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">+5 from last month</p>
+            <div className="text-2xl font-bold">{stats.totalBots}</div>
+            <p className="text-xs text-muted-foreground">Across all clients</p>
           </CardContent>
         </Card>
         <Card>
@@ -44,8 +86,8 @@ export function AdminDashboard() {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">+18% from last month</p>
+            <div className="text-2xl font-bold">{stats.totalActiveUsers}</div>
+            <p className="text-xs text-muted-foreground">Platform users</p>
           </CardContent>
         </Card>
         <Card>
@@ -54,8 +96,14 @@ export function AdminDashboard() {
             <Server className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-sm font-medium truncate">Gaming Community</div>
-            <p className="text-xs text-muted-foreground">324 new users this month</p>
+            {stats.mostActiveServer ? (
+              <>
+                <div className="text-sm font-medium truncate">{stats.mostActiveServer.name}</div>
+                <p className="text-xs text-muted-foreground">{stats.mostActiveServer.users} new users this month</p>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">No active servers</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -152,8 +200,8 @@ export function AdminDashboard() {
 
       <Tabs defaultValue="clients" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="clients">Recent Clients</TabsTrigger>
-          <TabsTrigger value="bots">Recent Bots</TabsTrigger>
+          <TabsTrigger value="clients">Recent Clients ({clients.length})</TabsTrigger>
+          <TabsTrigger value="bots">Recent Bots ({bots.length})</TabsTrigger>
           <TabsTrigger value="activity">Recent Activity</TabsTrigger>
         </TabsList>
         <TabsContent value="clients" className="space-y-4">
@@ -162,30 +210,18 @@ export function AdminDashboard() {
               <CardTitle>Recent Clients</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {clients.map((client, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col md:flex-row md:items-center gap-4 border-b pb-4 last:border-0 last:pb-0"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">{client.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {client.bots} bots • {client.influencers} influencers
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">Last active: {client.lastActive}</div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Assign Bot
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {clients.length > 0 ? (
+                <div className="space-y-4">
+                  {clients.map((client) => (
+                    <ClientCard key={client.id} client={client} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No clients found</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -195,29 +231,18 @@ export function AdminDashboard() {
               <CardTitle>Recent Bots</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {bots.map((bot, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col md:flex-row md:items-center gap-4 border-b pb-4 last:border-0 last:pb-0"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">{bot.name}</div>
-                      <div className="text-sm text-muted-foreground">Client: {bot.client}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`h-2 w-2 rounded-full ${bot.status === "Active" ? "bg-green-500" : "bg-red-500"}`}
-                      ></div>
-                      <div className="text-sm">{bot.status}</div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">{bot.servers} servers</div>
-                    <Button variant="outline" size="sm">
-                      Manage
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              {bots.length > 0 ? (
+                <div className="space-y-4">
+                  {bots.map((bot) => (
+                    <BotCard key={bot.id} bot={bot} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No bots found</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -231,7 +256,7 @@ export function AdminDashboard() {
                 {adminActivity.map((activity, index) => (
                   <div key={index} className="flex items-center gap-4">
                     <div className="rounded-full bg-muted p-2">
-                      <activity.icon className="h-4 w-4" />
+                      {getActivityIcon(activity.title)}
                     </div>
                     <div className="flex-1 space-y-1">
                       <p className="text-sm font-medium leading-none">{activity.title}</p>
@@ -249,85 +274,81 @@ export function AdminDashboard() {
   )
 }
 
-import { BotIcon, ServerIcon, UserIcon, SettingsIcon } from "lucide-react"
+function ClientCard({ client }: { client: ClientData }) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-green-100 text-green-800'
+      case 'inactive':
+        return 'bg-red-100 text-red-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
 
-const clients = [
-  {
-    name: "Gaming Community",
-    bots: 3,
-    influencers: 12,
-    lastActive: "2 hours ago",
-  },
-  {
-    name: "Tech Startup",
-    bots: 2,
-    influencers: 8,
-    lastActive: "1 day ago",
-  },
-  {
-    name: "Fashion Brand",
-    bots: 1,
-    influencers: 15,
-    lastActive: "3 hours ago",
-  },
-  {
-    name: "Educational Platform",
-    bots: 2,
-    influencers: 6,
-    lastActive: "5 hours ago",
-  },
-]
+  return (
+    <div className="flex flex-col md:flex-row md:items-center gap-4 border-b pb-4 last:border-0 last:pb-0">
+      <div className="flex-1">
+        <div className="font-medium">{client.name}</div>
+        <div className="text-sm text-muted-foreground">
+          {client.bots} bots • {client.influencers} influencers
+        </div>
+      </div>
+      <div className="text-sm text-muted-foreground">Last active: {client.lastActive}</div>
+      <span className={`text-xs px-2 py-1 rounded-full capitalize ${getStatusColor(client.status)}`}>
+        {client.status}
+      </span>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm">
+          View
+        </Button>
+        <Button variant="outline" size="sm">
+          Assign Bot
+        </Button>
+      </div>
+    </div>
+  )
+}
 
-const bots = [
-  {
-    name: "GamingBot",
-    client: "Gaming Community",
-    status: "Active",
-    servers: 12,
-  },
-  {
-    name: "TechHelper",
-    client: "Tech Startup",
-    status: "Active",
-    servers: 5,
-  },
-  {
-    name: "FashionAssistant",
-    client: "Fashion Brand",
-    status: "Offline",
-    servers: 8,
-  },
-  {
-    name: "EduBot",
-    client: "Educational Platform",
-    status: "Active",
-    servers: 3,
-  },
-]
+function BotCard({ bot }: { bot: BotData }) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'online':
+        return 'bg-green-500'
+      case 'offline':
+        return 'bg-red-500'
+      case 'maintenance':
+        return 'bg-yellow-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
 
-const adminActivity = [
-  {
-    icon: BotIcon,
-    title: "New bot deployed",
-    description: "GamingBot was deployed to Gaming Community",
-    time: "2 hours ago",
-  },
-  {
-    icon: UserIcon,
-    title: "New client added",
-    description: "Tech Startup was added to the platform",
-    time: "1 day ago",
-  },
-  {
-    icon: ServerIcon,
-    title: "Server joined",
-    description: "GamingBot joined a new Discord server",
-    time: "3 hours ago",
-  },
-  {
-    icon: SettingsIcon,
-    title: "Bot template updated",
-    description: "Default welcome message was updated",
-    time: "5 hours ago",
-  },
-]
+  return (
+    <div className="flex flex-col md:flex-row md:items-center gap-4 border-b pb-4 last:border-0 last:pb-0">
+      <div className="flex-1">
+        <div className="font-medium">{bot.name}</div>
+        <div className="text-sm text-muted-foreground">Client: {bot.client}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`h-2 w-2 rounded-full ${getStatusColor(bot.status)}`}></div>
+        <div className="text-sm">{bot.status}</div>
+      </div>
+      <div className="text-sm text-muted-foreground">{bot.servers} servers</div>
+      <Button variant="outline" size="sm">
+        Manage
+      </Button>
+    </div>
+  )
+}
+
+function getActivityIcon(title: string) {
+  if (title.includes('bot')) return <BotIcon className="h-4 w-4" />
+  if (title.includes('client')) return <UserIcon className="h-4 w-4" />
+  if (title.includes('server')) return <ServerIcon className="h-4 w-4" />
+  if (title.includes('template')) return <SettingsIcon className="h-4 w-4" />
+  return <UserIcon className="h-4 w-4" />
+}
