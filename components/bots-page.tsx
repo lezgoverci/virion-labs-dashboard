@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Download, Plus, Search, Server, Settings } from "lucide-react"
+import { Bot, Download, Plus, Search, Server, Settings, Eye, Edit, Trash2, Activity, Users, MessageSquare, Clock } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,21 +22,45 @@ import {
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { useBots } from "@/hooks/use-bots"
+import { useClients } from "@/hooks/use-clients"
+import { useToast } from "@/hooks/use-toast"
+import { type BotInsert } from "@/lib/supabase"
 
 export function BotsPage() {
   const { profile } = useAuth()
+  const { bots, loading, error, addBot, refreshBots, getStats, getStatusVariant, formatLastOnline } = useBots()
+  const { clients } = useClients()
+  const { toast } = useToast()
+  
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterClient, setFilterClient] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [showAddBot, setShowAddBot] = useState(false)
+  
+  // Form state for adding new bot
+  const [formData, setFormData] = useState<Partial<BotInsert>>({
+    name: "",
+    client_id: "",
+    discord_bot_id: "",
+    discord_token: "",
+    template: "standard",
+    prefix: "!",
+    description: "",
+    auto_deploy: false,
+    webhook_url: "",
+    avatar_url: "",
+    invite_url: ""
+  })
 
   const filteredBots = bots
     .filter((bot) => {
       if (filterStatus !== "all" && bot.status.toLowerCase() !== filterStatus.toLowerCase()) {
         return false
       }
-      if (filterClient !== "all" && bot.client !== filterClient) {
+      if (filterClient !== "all" && bot.client_id !== filterClient) {
         return false
       }
       if (searchQuery && !bot.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -45,20 +70,84 @@ export function BotsPage() {
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
       } else if (sortBy === "oldest") {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        return new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()
       } else if (sortBy === "name-asc") {
         return a.name.localeCompare(b.name)
       } else if (sortBy === "name-desc") {
         return b.name.localeCompare(a.name)
       } else if (sortBy === "most-servers") {
-        return b.servers - a.servers
+        return (b.servers || 0) - (a.servers || 0)
       }
       return 0
     })
 
-  const clientOptions = [...new Set(bots.map((bot) => bot.client))]
+  const handleAddBot = async () => {
+    if (!formData.name || !formData.client_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const { error } = await addBot(formData as BotInsert)
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive"
+      })
+    } else {
+      toast({
+        title: "Success",
+        description: "Bot created successfully",
+      })
+      setShowAddBot(false)
+      setFormData({
+        name: "",
+        client_id: "",
+        discord_bot_id: "",
+        discord_token: "",
+        template: "standard",
+        prefix: "!",
+        description: "",
+        auto_deploy: false,
+        webhook_url: "",
+        avatar_url: "",
+        invite_url: ""
+      })
+    }
+  }
+
+  const stats = getStats()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading bots...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-destructive">Error loading bots: {error}</p>
+          <Button onClick={refreshBots} className="mt-2">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -75,50 +164,122 @@ export function BotsPage() {
                 Create Bot
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Bot</DialogTitle>
+                <DialogTitle>Create New Discord Bot</DialogTitle>
                 <DialogDescription>Deploy a new Discord bot for a client</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bot-name">Bot Name</Label>
-                  <Input id="bot-name" placeholder="Enter bot name" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-name">Bot Name *</Label>
+                    <Input 
+                      id="bot-name" 
+                      placeholder="Enter bot name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-client">Client *</Label>
+                    <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
+                      <SelectTrigger id="bot-client">
+                        <SelectValue placeholder="Select client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bot-client">Client</Label>
-                  <Select>
-                    <SelectTrigger id="bot-client">
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientOptions.map((client) => (
-                        <SelectItem key={client} value={client}>
-                          {client}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-template">Bot Template</Label>
+                    <Select value={formData.template} onValueChange={(value) => setFormData(prev => ({ ...prev, template: value as any }))}>
+                      <SelectTrigger id="bot-template">
+                        <SelectValue placeholder="Select template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard Referral Bot</SelectItem>
+                        <SelectItem value="advanced">Advanced Referral Bot</SelectItem>
+                        <SelectItem value="custom">Custom Template</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-prefix">Command Prefix</Label>
+                    <Input 
+                      id="bot-prefix" 
+                      placeholder="!"
+                      value={formData.prefix}
+                      onChange={(e) => setFormData(prev => ({ ...prev, prefix: e.target.value }))}
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="bot-template">Bot Template</Label>
-                  <Select>
-                    <SelectTrigger id="bot-template">
-                      <SelectValue placeholder="Select template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">Standard Referral Bot</SelectItem>
-                      <SelectItem value="advanced">Advanced Referral Bot</SelectItem>
-                      <SelectItem value="custom">Custom Template</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="bot-description">Description</Label>
+                  <Textarea 
+                    id="bot-description" 
+                    placeholder="Describe what this bot does..."
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="discord-bot-id">Discord Application ID</Label>
+                  <Input 
+                    id="discord-bot-id" 
+                    placeholder="123456789012345678"
+                    value={formData.discord_bot_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discord_bot_id: e.target.value }))}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="bot-token">Discord Bot Token</Label>
-                  <Input id="bot-token" placeholder="Enter Discord bot token" />
+                  <Input 
+                    id="bot-token" 
+                    type="password"
+                    placeholder="Enter Discord bot token"
+                    value={formData.discord_token}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discord_token: e.target.value }))}
+                  />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="avatar-url">Avatar URL</Label>
+                    <Input 
+                      id="avatar-url" 
+                      placeholder="https://..."
+                      value={formData.avatar_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="webhook-url">Webhook URL</Label>
+                    <Input 
+                      id="webhook-url" 
+                      placeholder="https://..."
+                      value={formData.webhook_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, webhook_url: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
-                  <Switch id="auto-deploy" />
+                  <Switch 
+                    id="auto-deploy" 
+                    checked={formData.auto_deploy}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_deploy: checked }))}
+                  />
                   <Label htmlFor="auto-deploy">Auto-deploy after creation</Label>
                 </div>
               </div>
@@ -126,7 +287,7 @@ export function BotsPage() {
                 <Button variant="outline" onClick={() => setShowAddBot(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => setShowAddBot(false)}>Create Bot</Button>
+                <Button onClick={handleAddBot}>Create Bot</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -154,9 +315,9 @@ export function BotsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Clients</SelectItem>
-              {clientOptions.map((client) => (
-                <SelectItem key={client} value={client}>
-                  {client}
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -167,9 +328,10 @@ export function BotsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
               <SelectItem value="offline">Offline</SelectItem>
               <SelectItem value="maintenance">Maintenance</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -197,39 +359,61 @@ export function BotsPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Servers</TableHead>
                 <TableHead>Users</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Uptime</TableHead>
+                <TableHead>Last Online</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBots.map((bot, index) => (
-                <TableRow key={index}>
+              {filteredBots.map((bot) => (
+                <TableRow key={bot.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                        <Bot className="h-4 w-4" />
+                        {bot.avatar_url ? (
+                          <img src={bot.avatar_url} alt={bot.name} className="h-8 w-8 rounded-full" />
+                        ) : (
+                          <Bot className="h-4 w-4" />
+                        )}
                       </div>
-                      <div className="font-medium">{bot.name}</div>
+                      <div>
+                        <div className="font-medium">{bot.name}</div>
+                        <div className="text-sm text-muted-foreground">{bot.template}</div>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell>{bot.client}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        bot.status === "Active" ? "default" : bot.status === "Offline" ? "destructive" : "secondary"
-                      }
-                    >
+                    <div>
+                      <div className="font-medium">{bot.client?.name}</div>
+                      <div className="text-sm text-muted-foreground">{bot.client?.industry}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(bot.status) as any}>
                       {bot.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{bot.servers}</TableCell>
-                  <TableCell>{bot.users}</TableCell>
-                  <TableCell>{bot.createdAt}</TableCell>
+                  <TableCell>{bot.servers || 0}</TableCell>
+                  <TableCell>{bot.users || 0}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Activity className="h-3 w-3" />
+                      {bot.uptime_percentage?.toFixed(1) || 0}%
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatLastOnline(bot.last_online)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon">
-                        <Settings className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/bots/${bot.id}`}>
+                        <Button variant="ghost" size="icon">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Link href={`/bots/${bot.id}?edit=true`}>
+                        <Button variant="ghost" size="icon">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button variant="ghost" size="icon">
                         <Server className="h-4 w-4" />
                       </Button>
@@ -248,18 +432,9 @@ export function BotsPage() {
             <CardTitle className="text-sm font-medium">Total Bots</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{bots.length}</div>
-            <p className="text-xs text-muted-foreground">+3 from last month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Bots</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bots.filter((bot) => bot.status === "Active").length}</div>
+            <div className="text-2xl font-bold">{stats.totalBots}</div>
             <p className="text-xs text-muted-foreground">
-              {((bots.filter((bot) => bot.status === "Active").length / bots.length) * 100).toFixed(1)}% of total
+              {stats.onlineBots} online ({stats.onlinePercentage.toFixed(1)}%)
             </p>
           </CardContent>
         </Card>
@@ -268,9 +443,9 @@ export function BotsPage() {
             <CardTitle className="text-sm font-medium">Total Servers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{bots.reduce((total, bot) => total + bot.servers, 0)}</div>
+            <div className="text-2xl font-bold">{stats.totalServers}</div>
             <p className="text-xs text-muted-foreground">
-              {(bots.reduce((total, bot) => total + bot.servers, 0) / bots.length).toFixed(1)} avg per bot
+              {stats.avgServersPerBot.toFixed(1)} avg per bot
             </p>
           </CardContent>
         </Card>
@@ -279,9 +454,20 @@ export function BotsPage() {
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{bots.reduce((total, bot) => total + bot.users, 0)}</div>
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
             <p className="text-xs text-muted-foreground">
-              {(bots.reduce((total, bot) => total + bot.users, 0) / bots.length).toFixed(1)} avg per bot
+              {stats.avgUsersPerBot.toFixed(1)} avg per bot
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Avg Uptime</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.avgUptime.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.totalCommands} total commands
             </p>
           </CardContent>
         </Card>
@@ -289,70 +475,3 @@ export function BotsPage() {
     </div>
   )
 }
-
-const bots = [
-  {
-    name: "GamingBot",
-    client: "Gaming Community",
-    status: "Active",
-    servers: 12,
-    users: 3450,
-    createdAt: "May 10, 2023",
-  },
-  {
-    name: "TechHelper",
-    client: "Tech Startup",
-    status: "Active",
-    servers: 5,
-    users: 1280,
-    createdAt: "April 15, 2023",
-  },
-  {
-    name: "FashionAssistant",
-    client: "Fashion Brand",
-    status: "Offline",
-    servers: 8,
-    users: 2100,
-    createdAt: "March 22, 2023",
-  },
-  {
-    name: "EduBot",
-    client: "Educational Platform",
-    status: "Active",
-    servers: 3,
-    users: 780,
-    createdAt: "February 8, 2023",
-  },
-  {
-    name: "EntertainmentBot",
-    client: "Entertainment Studio",
-    status: "Maintenance",
-    servers: 7,
-    users: 1850,
-    createdAt: "January 15, 2023",
-  },
-  {
-    name: "FitnessTracker",
-    client: "Fitness App",
-    status: "Active",
-    servers: 4,
-    users: 950,
-    createdAt: "December 5, 2022",
-  },
-  {
-    name: "FoodieBot",
-    client: "Food Delivery",
-    status: "Active",
-    servers: 6,
-    users: 1420,
-    createdAt: "May 1, 2023",
-  },
-  {
-    name: "TravelGuide",
-    client: "Travel Agency",
-    status: "Offline",
-    servers: 2,
-    users: 520,
-    createdAt: "November 12, 2022",
-  },
-]

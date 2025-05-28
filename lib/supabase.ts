@@ -15,6 +15,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bots: {
+        Row: {
+          auto_deploy: boolean | null
+          avatar_url: string | null
+          client_id: string
+          commands_used: number | null
+          created_at: string | null
+          description: string | null
+          discord_bot_id: string | null
+          discord_token: string | null
+          id: string
+          invite_url: string | null
+          last_online: string | null
+          name: string
+          prefix: string | null
+          servers: number | null
+          status: string
+          template: string
+          updated_at: string | null
+          uptime_percentage: number | null
+          users: number | null
+          webhook_url: string | null
+        }
+        Insert: {
+          auto_deploy?: boolean | null
+          avatar_url?: string | null
+          client_id: string
+          commands_used?: number | null
+          created_at?: string | null
+          description?: string | null
+          discord_bot_id?: string | null
+          discord_token?: string | null
+          id?: string
+          invite_url?: string | null
+          last_online?: string | null
+          name: string
+          prefix?: string | null
+          servers?: number | null
+          status?: string
+          template?: string
+          updated_at?: string | null
+          uptime_percentage?: number | null
+          users?: number | null
+          webhook_url?: string | null
+        }
+        Update: {
+          auto_deploy?: boolean | null
+          avatar_url?: string | null
+          client_id?: string
+          commands_used?: number | null
+          created_at?: string | null
+          description?: string | null
+          discord_bot_id?: string | null
+          discord_token?: string | null
+          id?: string
+          invite_url?: string | null
+          last_online?: string | null
+          name?: string
+          prefix?: string | null
+          servers?: number | null
+          status?: string
+          template?: string
+          updated_at?: string | null
+          uptime_percentage?: number | null
+          users?: number | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           bots: number | null
@@ -112,6 +189,8 @@ export type Database = {
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
 export type UserRole = 'influencer' | 'admin' | 'client'
+export type BotStatus = 'Online' | 'Offline' | 'Maintenance' | 'Error'
+export type BotTemplate = 'standard' | 'advanced' | 'custom'
 
 export interface UserProfile {
   id: string
@@ -125,4 +204,17 @@ export interface UserProfile {
 
 export type Client = Database['public']['Tables']['clients']['Row']
 export type ClientInsert = Database['public']['Tables']['clients']['Insert']
-export type ClientUpdate = Database['public']['Tables']['clients']['Update'] 
+export type ClientUpdate = Database['public']['Tables']['clients']['Update']
+
+export type Bot = Database['public']['Tables']['bots']['Row']
+export type BotInsert = Database['public']['Tables']['bots']['Insert']
+export type BotUpdate = Database['public']['Tables']['bots']['Update']
+
+// Extended Bot type with client information
+export interface BotWithClient extends Bot {
+  client?: {
+    id: string
+    name: string
+    industry: string
+  }
+} 
