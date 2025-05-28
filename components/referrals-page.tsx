@@ -6,7 +6,7 @@ import { Download, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/pagination"
 
 export function ReferralsPage() {
-  const { currentAccount } = useAccount()
+  const { profile } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [filterSource, setFilterSource] = useState("all")
   const [sortBy, setSortBy] = useState("newest")

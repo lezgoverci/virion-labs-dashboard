@@ -4,10 +4,10 @@ import { useState } from "react"
 import { Copy, ExternalLink, QrCode, Search, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 import { LinkGenerationForm } from "@/components/link-generation-form"
 import {
   Dialog,
@@ -18,9 +18,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 
 export function LinksPage() {
-  const { currentAccount } = useAccount()
+  const { profile } = useAuth()
   const [showLinkGenerator, setShowLinkGenerator] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterPlatform, setFilterPlatform] = useState("all")

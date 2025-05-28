@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   BarChart3,
   LinkIcon,
@@ -25,12 +25,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 
 export function Sidebar() {
-  const { currentAccount, accounts, switchAccount } = useAccount()
+  const { profile, signOut } = useAuth()
   const pathname = usePathname()
-  const isAdmin = currentAccount?.role === "admin"
+  const router = useRouter()
+  const isAdmin = profile?.role === "admin"
+  const isClient = profile?.role === "client"
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push("/login")
+  }
 
   const influencerNavItems = [
     {
@@ -104,7 +111,34 @@ export function Sidebar() {
     },
   ]
 
-  const navItems = isAdmin ? adminNavItems : influencerNavItems
+  const clientNavItems = [
+    {
+      title: "Dashboard",
+      href: "/",
+      icon: LayoutDashboard,
+      active: pathname === "/",
+    },
+    {
+      title: "Analytics",
+      href: "/analytics",
+      icon: Activity,
+      active: pathname === "/analytics",
+    },
+    {
+      title: "Settings",
+      href: "/settings",
+      icon: Settings,
+      active: pathname === "/settings",
+    },
+  ]
+
+  const getNavItems = () => {
+    if (isAdmin) return adminNavItems
+    if (isClient) return clientNavItems
+    return influencerNavItems
+  }
+
+  const navItems = getNavItems()
 
   return (
     <div className="h-screen flex flex-col border-r bg-background">
@@ -146,37 +180,28 @@ export function Sidebar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start gap-2 px-2 hover:bg-muted">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={currentAccount?.avatar || "/placeholder.svg"} alt={currentAccount?.name} />
-                <AvatarFallback>{currentAccount?.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
+                <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start text-left">
-                <span className="font-medium">{currentAccount?.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">{currentAccount?.role}</span>
+                <span className="font-medium">{profile?.full_name}</span>
+                <span className="text-xs text-muted-foreground capitalize">{profile?.role}</span>
               </div>
               <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Switch Account</DropdownMenuLabel>
+            <DropdownMenuLabel>Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {accounts.map((account) => (
-              <DropdownMenuItem
-                key={account.id}
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => switchAccount(account.id)}
-              >
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={account.avatar || "/placeholder.svg"} alt={account.name} />
-                  <AvatarFallback>{account.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span>{account.name}</span>
-                  <span className="text-xs text-muted-foreground capitalize">{account.role}</span>
-                </div>
-              </DropdownMenuItem>
-            ))}
+            <div className="px-2 py-1.5">
+              <div className="flex flex-col">
+                <span className="font-medium">{profile?.full_name}</span>
+                <span className="text-xs text-muted-foreground">{profile?.email}</span>
+                <span className="text-xs text-muted-foreground capitalize">{profile?.role}</span>
+              </div>
+            </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={handleSignOut}>
               <LogOut className="h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

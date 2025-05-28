@@ -6,7 +6,7 @@ import { Calendar, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
@@ -28,12 +28,12 @@ import {
 } from "recharts"
 
 export function AnalyticsPage() {
-  const { currentAccount } = useAccount()
+  const { profile } = useAuth()
   const [dateRange, setDateRange] = useState("last-30-days")
   const [date, setDate] = useState(new Date())
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
-  const isAdmin = currentAccount?.role === "admin"
+  const isAdmin = profile?.role === "admin"
 
   return (
     <div className="space-y-6">

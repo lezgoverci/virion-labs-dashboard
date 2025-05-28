@@ -1,4 +1,6 @@
 "use client"
+
+import { useState } from "react"
 import { Save } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -6,14 +8,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export function SettingsPage() {
-  const { currentAccount } = useAccount()
-  const isAdmin = currentAccount?.role === "admin"
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === "admin"
 
   return (
     <div className="space-y-6">
@@ -60,7 +62,7 @@ export function SettingsPage() {
 }
 
 function ProfileSettings() {
-  const { currentAccount } = useAccount()
+  const { profile } = useAuth()
 
   return (
     <Card>
@@ -71,8 +73,8 @@ function ProfileSettings() {
       <CardContent className="space-y-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={currentAccount?.avatar || "/placeholder.svg"} alt={currentAccount?.name} />
-            <AvatarFallback>{currentAccount?.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
+            <AvatarFallback>{profile?.full_name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
             <Button variant="outline" size="sm">
@@ -84,15 +86,15 @@ function ProfileSettings() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" defaultValue={currentAccount?.name} />
+            <Input id="name" defaultValue={profile?.full_name} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" defaultValue={currentAccount?.email} />
+            <Input id="email" type="email" defaultValue={profile?.email} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" defaultValue={currentAccount?.name.toLowerCase().replace(" ", "")} />
+            <Input id="username" defaultValue={profile?.full_name?.toLowerCase().replace(" ", "")} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>

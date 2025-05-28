@@ -5,15 +5,15 @@ import { Bot, Server, User, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 
 export function AdminDashboard() {
-  const { currentAccount } = useAccount()
+  const { profile } = useAuth()
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Welcome back, {currentAccount?.name} 👋</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Welcome back, {profile?.full_name} 👋</h1>
         <p className="text-muted-foreground">Here's an overview of all activity across clients.</p>
       </div>
 

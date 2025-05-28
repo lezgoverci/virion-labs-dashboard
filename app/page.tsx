@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { BarChart3, Copy, ExternalLink, LinkIcon, Menu, QrCode, User } from "lucide-react"
 
@@ -11,13 +13,38 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MobileNav } from "@/components/mobile-nav"
-import { useMobile } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { InfluencerDashboard } from "@/components/influencer-dashboard"
 import { AdminDashboard } from "@/components/admin-dashboard"
-import { useAccount } from "@/components/account-provider"
+import { ClientDashboard } from "@/components/client-dashboard"
+import { useAuth } from "@/components/auth-provider"
 
 export default function Home() {
+  const { user, profile, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login")
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || !profile) {
+    return null // Will redirect to login
+  }
+
   return (
     <DashboardLayout>
       <DashboardContent />
@@ -26,15 +53,19 @@ export default function Home() {
 }
 
 function DashboardContent() {
-  "use client"
+  const { profile } = useAuth()
 
-  const { currentAccount } = useAccount()
+  if (!profile) return null
 
-  if (currentAccount?.role === "admin") {
-    return <AdminDashboard />
+  switch (profile.role) {
+    case "admin":
+      return <AdminDashboard />
+    case "client":
+      return <ClientDashboard />
+    case "influencer":
+    default:
+      return <InfluencerDashboard />
   }
-
-  return <InfluencerDashboard />
 }
 
 function Dashboard() {
@@ -204,115 +235,93 @@ function Dashboard() {
           </Tabs>
         </div>
       </main>
-      <GenerateLinkButton />
     </div>
   )
 }
 
 function GenerateLinkButton() {
-  const isMobile = useMobile()
-
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button className={`${isMobile ? "fixed bottom-4 right-4 shadow-lg rounded-full" : "hidden"}`} size="icon">
-          <LinkIcon className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className="h-[400px] sm:h-[500px] rounded-t-xl">
-        <SheetHeader>
-          <SheetTitle>Generate Referral Link</SheetTitle>
-        </SheetHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="content-url">Content URL</Label>
-            <Input id="content-url" placeholder="Paste your content/video URL" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="platform">Platform</Label>
-            <Select>
-              <SelectTrigger id="platform">
-                <SelectValue placeholder="Select platform" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="youtube">YouTube</SelectItem>
-                <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="tiktok">TikTok</SelectItem>
-                <SelectItem value="twitter">Twitter</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Input id="description" placeholder="Add a description for this link" />
-          </div>
-          <Button className="w-full">Generate Link</Button>
-          <div className="border rounded-md p-4 mt-4">
-            <div className="text-sm font-medium mb-2">Your referral link</div>
-            <div className="flex items-center gap-2 mb-4">
-              <Input value="https://ref.example.com/j8f92h" readOnly />
-              <Button variant="outline" size="icon">
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex justify-between">
-              <Button variant="outline" size="sm">
-                <QrCode className="h-4 w-4 mr-2" />
-                QR Code
-              </Button>
-              <Button variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Generate New Link</h3>
+      </div>
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="platform">Platform</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select platform" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="instagram">Instagram</SelectItem>
+              <SelectItem value="youtube">YouTube</SelectItem>
+              <SelectItem value="tiktok">TikTok</SelectItem>
+              <SelectItem value="twitter">Twitter</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </SheetContent>
-    </Sheet>
+        <div className="grid gap-2">
+          <Label htmlFor="campaign">Campaign Name</Label>
+          <Input id="campaign" placeholder="e.g., Summer Collection 2024" />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="description">Description (Optional)</Label>
+          <Input id="description" placeholder="Brief description of the campaign" />
+        </div>
+        <Button className="w-full">
+          <LinkIcon className="mr-2 h-4 w-4" />
+          Generate Link
+        </Button>
+      </div>
+    </div>
   )
 }
 
-function LinkCard({ link }) {
+interface LinkData {
+  id: string
+  title: string
+  url: string
+  platform: string
+  clicks: number
+  conversions: number
+  earnings: number
+  created: string
+}
+
+function LinkCard({ link }: { link: LinkData }) {
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="grid gap-4 md:grid-cols-[100px_1fr] items-start">
-          <div className="aspect-video bg-muted rounded-md overflow-hidden">
-            <img src={link.thumbnail || "/placeholder.svg"} alt={link.title} className="w-full h-full object-cover" />
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h4 className="font-medium">{link.title}</h4>
+            <p className="text-sm text-muted-foreground">{link.platform}</p>
           </div>
-          <div className="space-y-2">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <h3 className="font-medium">{link.title}</h3>
-              <div className="flex items-center gap-2">
-                <div className="text-sm text-muted-foreground">{link.platform}</div>
-                <div className="text-sm text-muted-foreground">•</div>
-                <div className="text-sm text-muted-foreground">{link.date}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Input value={link.url} readOnly className="text-xs" />
-              <Button variant="outline" size="icon">
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="text-sm">
-                  <span className="font-medium">{link.clicks}</span> clicks
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">{link.conversions}</span> conversions
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">{link.conversionRate}%</span> rate
-                </div>
-              </div>
-              <div className="flex-1 flex justify-end">
-                <Button variant="outline" size="sm">
-                  View Referrals
-                </Button>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm">
+              <QrCode className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm">
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="text-lg font-semibold">{link.clicks}</div>
+            <div className="text-xs text-muted-foreground">Clicks</div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold">{link.conversions}</div>
+            <div className="text-xs text-muted-foreground">Conversions</div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold">${link.earnings}</div>
+            <div className="text-xs text-muted-foreground">Earnings</div>
           </div>
         </div>
       </CardContent>
@@ -320,26 +329,33 @@ function LinkCard({ link }) {
   )
 }
 
-function ReferralCard({ referral }) {
+interface ReferralData {
+  id: string
+  user: string
+  email: string
+  status: string
+  date: string
+  earnings: number
+  source: string
+}
+
+function ReferralCard({ referral }: { referral: ReferralData }) {
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex-1">
-            <div className="font-medium">{referral.name}</div>
-            <div className="text-sm text-muted-foreground">{referral.email}</div>
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h4 className="font-medium">{referral.user}</h4>
+            <p className="text-sm text-muted-foreground">{referral.email}</p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="text-sm">
-              <span className="font-medium">Age:</span> {referral.age}
-            </div>
-            <div className="text-sm">
-              <span className="font-medium">Discord:</span> {referral.discordId}
-            </div>
-            <div className="text-sm">
-              <span className="font-medium">Joined:</span> {referral.date}
-            </div>
+          <div className="text-right space-y-1">
+            <div className="text-sm font-medium">${referral.earnings}</div>
+            <div className="text-xs text-muted-foreground">{referral.date}</div>
           </div>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">{referral.status}</span>
+          <span className="text-xs text-muted-foreground">{referral.source}</span>
         </div>
       </CardContent>
     </Card>
@@ -347,81 +363,52 @@ function ReferralCard({ referral }) {
 }
 
 const recentActivity = [
-  {
-    user: "Sarah Johnson",
-    action: "signed up through your YouTube link",
-    time: "2 hours ago",
-  },
-  {
-    user: "Mike Peterson",
-    action: "clicked your Instagram referral link",
-    time: "5 hours ago",
-  },
-  {
-    user: "Emma Wilson",
-    action: "joined Discord server through your link",
-    time: "1 day ago",
-  },
-  {
-    user: "Alex Thompson",
-    action: "signed up through your TikTok link",
-    time: "2 days ago",
-  },
+  { user: "Sarah Johnson", action: "Signed up via your Instagram link", time: "2 min ago" },
+  { user: "Mike Chen", action: "Completed purchase - $45.99", time: "1 hour ago" },
+  { user: "Emma Davis", action: "Clicked your YouTube link", time: "3 hours ago" },
+  { user: "Alex Rodriguez", action: "Signed up via your TikTok link", time: "5 hours ago" },
 ]
 
 const links = [
   {
-    title: "Summer Haul Video",
-    platform: "YouTube",
-    date: "May 10, 2023",
-    url: "https://ref.example.com/summer-haul",
-    thumbnail: "/placeholder.svg?height=100&width=180",
-    clicks: 450,
-    conversions: 89,
-    conversionRate: 19.8,
-  },
-  {
-    title: "Product Review",
+    id: "1",
+    title: "Summer Collection Launch",
+    url: "https://example.com/ref/summer2024",
     platform: "Instagram",
-    date: "April 28, 2023",
-    url: "https://ref.example.com/product-review",
-    thumbnail: "/placeholder.svg?height=100&width=180",
-    clicks: 320,
-    conversions: 65,
-    conversionRate: 20.3,
+    clicks: 1234,
+    conversions: 89,
+    earnings: 445.50,
+    created: "2024-01-15",
   },
   {
-    title: "Tutorial: Getting Started",
-    platform: "TikTok",
-    date: "April 15, 2023",
-    url: "https://ref.example.com/tutorial",
-    thumbnail: "/placeholder.svg?height=100&width=180",
-    clicks: 280,
-    conversions: 42,
-    conversionRate: 15.0,
+    id: "2",
+    title: "YouTube Product Review",
+    url: "https://example.com/ref/youtube-review",
+    platform: "YouTube",
+    clicks: 856,
+    conversions: 67,
+    earnings: 335.25,
+    created: "2024-01-12",
   },
 ]
 
 const referrals = [
   {
-    name: "Sarah Johnson",
-    email: "sarah.j@example.com",
-    age: 24,
-    discordId: "sarah#1234",
-    date: "May 12, 2023",
+    id: "1",
+    user: "Sarah Johnson",
+    email: "sarah@example.com",
+    status: "Active",
+    date: "2024-01-15",
+    earnings: 25.00,
+    source: "Instagram",
   },
   {
-    name: "Mike Peterson",
-    email: "mike.p@example.com",
-    age: 31,
-    discordId: "mikep#5678",
-    date: "May 10, 2023",
-  },
-  {
-    name: "Emma Wilson",
-    email: "emma.w@example.com",
-    age: 28,
-    discordId: "emmaw#9012",
-    date: "May 8, 2023",
+    id: "2",
+    user: "Mike Chen",
+    email: "mike@example.com",
+    status: "Completed",
+    date: "2024-01-14",
+    earnings: 45.99,
+    source: "YouTube",
   },
 ]

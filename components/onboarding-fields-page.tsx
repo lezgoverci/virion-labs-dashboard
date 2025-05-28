@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, Edit, Grip, Plus, Save, Trash, MessageSquare, Bot }
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useAccount } from "@/components/account-provider"
+import { useAuth } from "@/components/auth-provider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -24,7 +24,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 
 export function OnboardingFieldsPage() {
-  const { currentAccount } = useAccount()
+  const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState("fields")
   const [showAddField, setShowAddField] = useState(false)
   const [editingField, setEditingField] = useState(null)
