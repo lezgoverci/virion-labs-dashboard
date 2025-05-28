@@ -3,7 +3,113 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://mcynacktfmtzkkohctps.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jeW5hY2t0Zm10emtrb2hjdHBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MjUwNTMsImV4cCI6MjA2NDAwMTA1M30.8RwxTIucQndsJ2e_q53p5TRNVM3xdhIfQuD2YxzQy70'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Database types
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  public: {
+    Tables: {
+      clients: {
+        Row: {
+          bots: number | null
+          contact_email: string | null
+          created_at: string | null
+          id: string
+          industry: string
+          influencers: number | null
+          join_date: string
+          logo: string | null
+          name: string
+          primary_contact: string | null
+          status: string
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          bots?: number | null
+          contact_email?: string | null
+          created_at?: string | null
+          id?: string
+          industry: string
+          influencers?: number | null
+          join_date?: string
+          logo?: string | null
+          name: string
+          primary_contact?: string | null
+          status?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          bots?: number | null
+          contact_email?: string | null
+          created_at?: string | null
+          id?: string
+          industry?: string
+          influencers?: number | null
+          join_date?: string
+          logo?: string | null
+          name?: string
+          primary_contact?: string | null
+          status?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id: string
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
 export type UserRole = 'influencer' | 'admin' | 'client'
 
@@ -15,4 +121,8 @@ export interface UserProfile {
   role: UserRole
   created_at: string
   updated_at: string
-} 
+}
+
+export type Client = Database['public']['Tables']['clients']['Row']
+export type ClientInsert = Database['public']['Tables']['clients']['Insert']
+export type ClientUpdate = Database['public']['Tables']['clients']['Update'] 

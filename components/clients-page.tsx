@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Download, Plus, Search, User } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Bot, Download, Plus, Search, User, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,13 +23,41 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { useClients } from "@/hooks/use-clients"
+import { toast } from "sonner"
 
 export function ClientsPage() {
   const { profile } = useAuth()
+  const router = useRouter()
+  const { 
+    clients, 
+    loading, 
+    error, 
+    addClient, 
+    updateClient, 
+    deleteClient, 
+    formatDate, 
+    getStats 
+  } = useClients()
+  
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [showAddClient, setShowAddClient] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Form state for adding new client
+  const [newClient, setNewClient] = useState({
+    name: "",
+    industry: "",
+    website: "",
+    primary_contact: "",
+    contact_email: "",
+    influencers: 0,
+    bots: 0
+  })
+
+  const stats = getStats()
 
   const filteredClients = clients
     .filter((client) => {
@@ -46,18 +75,86 @@ export function ClientsPage() {
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
-        return new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime()
+        return new Date(b.join_date).getTime() - new Date(a.join_date).getTime()
       } else if (sortBy === "oldest") {
-        return new Date(a.joinDate).getTime() - new Date(b.joinDate).getTime()
+        return new Date(a.join_date).getTime() - new Date(b.join_date).getTime()
       } else if (sortBy === "name-asc") {
         return a.name.localeCompare(b.name)
       } else if (sortBy === "name-desc") {
         return b.name.localeCompare(a.name)
       } else if (sortBy === "most-influencers") {
-        return b.influencers - a.influencers
+        return (b.influencers || 0) - (a.influencers || 0)
       }
       return 0
     })
+
+  const handleAddClient = async () => {
+    if (!newClient.name || !newClient.industry) {
+      toast.error("Please fill in required fields")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const { error } = await addClient({
+        name: newClient.name,
+        industry: newClient.industry,
+        website: newClient.website || null,
+        primary_contact: newClient.primary_contact || null,
+        contact_email: newClient.contact_email || null,
+        influencers: newClient.influencers,
+        bots: newClient.bots,
+        status: "Active"
+      })
+
+      if (error) {
+        toast.error(error)
+      } else {
+        toast.success("Client added successfully")
+        setShowAddClient(false)
+        setNewClient({
+          name: "",
+          industry: "",
+          website: "",
+          primary_contact: "",
+          contact_email: "",
+          influencers: 0,
+          bots: 0
+        })
+      }
+    } catch (err) {
+      toast.error("Failed to add client")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleViewClient = (clientId: string) => {
+    router.push(`/clients/${clientId}`)
+  }
+
+  const handleEditClient = (clientId: string) => {
+    router.push(`/clients/${clientId}?edit=true`)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Error loading clients</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -81,42 +178,94 @@ export function ClientsPage() {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="client-name">Client Name</Label>
-                  <Input id="client-name" placeholder="Enter client name" />
+                  <Label htmlFor="client-name">Client Name *</Label>
+                  <Input 
+                    id="client-name" 
+                    placeholder="Enter client name"
+                    value={newClient.name}
+                    onChange={(e) => setNewClient(prev => ({ ...prev, name: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="client-industry">Industry</Label>
-                  <Select>
+                  <Label htmlFor="client-industry">Industry *</Label>
+                  <Select 
+                    value={newClient.industry} 
+                    onValueChange={(value) => setNewClient(prev => ({ ...prev, industry: value }))}
+                  >
                     <SelectTrigger id="client-industry">
                       <SelectValue placeholder="Select industry" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gaming">Gaming</SelectItem>
-                      <SelectItem value="fashion">Fashion</SelectItem>
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="Gaming">Gaming</SelectItem>
+                      <SelectItem value="Fashion">Fashion</SelectItem>
+                      <SelectItem value="Technology">Technology</SelectItem>
+                      <SelectItem value="Education">Education</SelectItem>
+                      <SelectItem value="Entertainment">Entertainment</SelectItem>
+                      <SelectItem value="Health & Fitness">Health & Fitness</SelectItem>
+                      <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
+                      <SelectItem value="Travel">Travel</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="client-website">Website</Label>
-                  <Input id="client-website" placeholder="https://" />
+                  <Input 
+                    id="client-website" 
+                    placeholder="https://"
+                    value={newClient.website}
+                    onChange={(e) => setNewClient(prev => ({ ...prev, website: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="client-contact">Primary Contact</Label>
-                  <Input id="client-contact" placeholder="Contact name" />
+                  <Input 
+                    id="client-contact" 
+                    placeholder="Contact name"
+                    value={newClient.primary_contact}
+                    onChange={(e) => setNewClient(prev => ({ ...prev, primary_contact: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="client-email">Contact Email</Label>
-                  <Input id="client-email" type="email" placeholder="Email address" />
+                  <Input 
+                    id="client-email" 
+                    type="email" 
+                    placeholder="Email address"
+                    value={newClient.contact_email}
+                    onChange={(e) => setNewClient(prev => ({ ...prev, contact_email: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="client-influencers">Influencers</Label>
+                    <Input 
+                      id="client-influencers" 
+                      type="number" 
+                      min="0"
+                      value={newClient.influencers}
+                      onChange={(e) => setNewClient(prev => ({ ...prev, influencers: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-bots">Bots</Label>
+                    <Input 
+                      id="client-bots" 
+                      type="number" 
+                      min="0"
+                      value={newClient.bots}
+                      onChange={(e) => setNewClient(prev => ({ ...prev, bots: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddClient(false)}>
+                <Button variant="outline" onClick={() => setShowAddClient(false)} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button onClick={() => setShowAddClient(false)}>Add Client</Button>
+                <Button onClick={handleAddClient} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Add Client
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -186,9 +335,9 @@ export function ClientsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredClients.map((client, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
+                  {filteredClients.map((client) => (
+                    <TableRow key={client.id} className="cursor-pointer hover:bg-muted/50">
+                      <TableCell onClick={() => handleViewClient(client.id)}>
                         <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarImage src={client.logo || "/placeholder.svg"} alt={client.name} />
@@ -197,10 +346,10 @@ export function ClientsPage() {
                           <div className="font-medium">{client.name}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{client.industry}</TableCell>
-                      <TableCell>{client.influencers}</TableCell>
-                      <TableCell>{client.bots}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={() => handleViewClient(client.id)}>{client.industry}</TableCell>
+                      <TableCell onClick={() => handleViewClient(client.id)}>{client.influencers || 0}</TableCell>
+                      <TableCell onClick={() => handleViewClient(client.id)}>{client.bots || 0}</TableCell>
+                      <TableCell onClick={() => handleViewClient(client.id)}>
                         <Badge
                           variant={
                             client.status === "Active"
@@ -213,13 +362,27 @@ export function ClientsPage() {
                           {client.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{client.joinDate}</TableCell>
+                      <TableCell onClick={() => handleViewClient(client.id)}>{formatDate(client.join_date)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewClient(client.id)
+                            }}
+                          >
                             View
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditClient(client.id)
+                            }}
+                          >
                             Edit
                           </Button>
                         </div>
@@ -234,9 +397,9 @@ export function ClientsPage() {
 
         <TabsContent value="grid" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredClients.map((client, index) => (
-              <Card key={index}>
-                <CardHeader className="pb-2">
+            {filteredClients.map((client) => (
+              <Card key={client.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2" onClick={() => handleViewClient(client.id)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -255,23 +418,42 @@ export function ClientsPage() {
                   </div>
                   <CardDescription>{client.industry}</CardDescription>
                 </CardHeader>
-                <CardContent className="pb-2">
+                <CardContent className="pb-2" onClick={() => handleViewClient(client.id)}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{client.influencers} Influencers</span>
+                      <span className="text-sm">{client.influencers || 0} Influencers</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Bot className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{client.bots} Bots</span>
+                      <span className="text-sm">{client.bots || 0} Bots</span>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <div className="text-sm text-muted-foreground">Joined {client.joinDate}</div>
-                  <Button variant="ghost" size="sm">
-                    View
-                  </Button>
+                  <div className="text-sm text-muted-foreground">Joined {formatDate(client.join_date)}</div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewClient(client.id)
+                      }}
+                    >
+                      View
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditClient(client.id)
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  </div>
                 </CardFooter>
               </Card>
             ))}
@@ -285,7 +467,7 @@ export function ClientsPage() {
             <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clients.length}</div>
+            <div className="text-2xl font-bold">{stats.totalClients}</div>
             <p className="text-xs text-muted-foreground">+2 from last month</p>
           </CardContent>
         </Card>
@@ -294,10 +476,9 @@ export function ClientsPage() {
             <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clients.filter((client) => client.status === "Active").length}</div>
+            <div className="text-2xl font-bold">{stats.activeClients}</div>
             <p className="text-xs text-muted-foreground">
-              {((clients.filter((client) => client.status === "Active").length / clients.length) * 100).toFixed(1)}% of
-              total
+              {stats.activePercentage.toFixed(1)}% of total
             </p>
           </CardContent>
         </Card>
@@ -306,10 +487,9 @@ export function ClientsPage() {
             <CardTitle className="text-sm font-medium">Total Influencers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clients.reduce((total, client) => total + client.influencers, 0)}</div>
+            <div className="text-2xl font-bold">{stats.totalInfluencers}</div>
             <p className="text-xs text-muted-foreground">
-              {(clients.reduce((total, client) => total + client.influencers, 0) / clients.length).toFixed(1)} avg per
-              client
+              {stats.avgInfluencersPerClient.toFixed(1)} avg per client
             </p>
           </CardContent>
         </Card>
@@ -318,9 +498,9 @@ export function ClientsPage() {
             <CardTitle className="text-sm font-medium">Total Bots</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clients.reduce((total, client) => total + client.bots, 0)}</div>
+            <div className="text-2xl font-bold">{stats.totalBots}</div>
             <p className="text-xs text-muted-foreground">
-              {(clients.reduce((total, client) => total + client.bots, 0) / clients.length).toFixed(1)} avg per client
+              {stats.avgBotsPerClient.toFixed(1)} avg per client
             </p>
           </CardContent>
         </Card>
@@ -328,78 +508,3 @@ export function ClientsPage() {
     </div>
   )
 }
-
-const clients = [
-  {
-    name: "Gaming Community",
-    industry: "Gaming",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 12,
-    bots: 3,
-    status: "Active",
-    joinDate: "May 10, 2023",
-  },
-  {
-    name: "Tech Startup",
-    industry: "Technology",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 8,
-    bots: 2,
-    status: "Active",
-    joinDate: "April 15, 2023",
-  },
-  {
-    name: "Fashion Brand",
-    industry: "Fashion",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 15,
-    bots: 1,
-    status: "Active",
-    joinDate: "March 22, 2023",
-  },
-  {
-    name: "Educational Platform",
-    industry: "Education",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 6,
-    bots: 2,
-    status: "Inactive",
-    joinDate: "February 8, 2023",
-  },
-  {
-    name: "Entertainment Studio",
-    industry: "Entertainment",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 10,
-    bots: 2,
-    status: "Active",
-    joinDate: "January 15, 2023",
-  },
-  {
-    name: "Fitness App",
-    industry: "Health & Fitness",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 7,
-    bots: 1,
-    status: "Active",
-    joinDate: "December 5, 2022",
-  },
-  {
-    name: "Food Delivery",
-    industry: "Food & Beverage",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 9,
-    bots: 1,
-    status: "Pending",
-    joinDate: "May 1, 2023",
-  },
-  {
-    name: "Travel Agency",
-    industry: "Travel",
-    logo: "/placeholder.svg?height=40&width=40",
-    influencers: 5,
-    bots: 1,
-    status: "Inactive",
-    joinDate: "November 12, 2022",
-  },
-]
