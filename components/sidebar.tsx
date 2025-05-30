@@ -12,7 +12,7 @@ import {
   Bot,
   Database,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, generateInitials } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/components/auth-provider"
 
@@ -155,8 +155,10 @@ export function Sidebar() {
       <div className="border-t p-4">
         <div className="flex items-center gap-3 px-2 py-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
-            <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
+            {profile?.avatar_url && (
+              <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
+            )}
+            <AvatarFallback>{generateInitials(profile?.full_name)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col items-start text-left min-w-0 flex-1">
             <span className="font-medium text-sm truncate">{profile?.full_name}</span>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { LogOut, Settings, Menu } from "lucide-react"
 
+import { generateInitials } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -90,8 +91,10 @@ export function DashboardLayout({ children, debugData }: DashboardLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar>
-                    <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
-                    <AvatarFallback>{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
+                    {profile?.avatar_url && (
+                      <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
+                    )}
+                    <AvatarFallback>{generateInitials(profile?.full_name)}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>

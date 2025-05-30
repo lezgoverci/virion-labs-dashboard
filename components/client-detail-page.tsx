@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Bot, Calendar, Edit, Globe, Mail, Phone, Save, User, X, Loader2, Trash2 } from "lucide-react"
 
+import { generateInitials } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -226,8 +227,10 @@ export function ClientDetailPage({ clientId }: ClientDetailPageProps) {
           </Button>
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={client.logo || "/placeholder.svg"} alt={client.name} />
-              <AvatarFallback className="text-lg">{client.name.charAt(0)}</AvatarFallback>
+              {client.logo && (
+                <AvatarImage src={client.logo} alt={client.name} />
+              )}
+              <AvatarFallback className="text-lg">{generateInitials(client.name)}</AvatarFallback>
             </Avatar>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>

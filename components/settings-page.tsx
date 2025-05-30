@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Save, Eye, EyeOff, Copy, Check } from "lucide-react"
 
+import { generateInitials } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -135,8 +136,10 @@ function ProfileSettings() {
       <CardContent className="space-y-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} alt={profile?.full_name} />
-            <AvatarFallback>{profile?.full_name?.charAt(0)}</AvatarFallback>
+            {profile?.avatar_url && (
+              <AvatarImage src={profile.avatar_url} alt={profile?.full_name} />
+            )}
+            <AvatarFallback>{generateInitials(profile?.full_name)}</AvatarFallback>
           </Avatar>
           <div>
             <Button variant="outline" size="sm">

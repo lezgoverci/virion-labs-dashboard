@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Bot, Download, Plus, Search, User, Loader2 } from "lucide-react"
 
+import { generateInitials } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -340,8 +341,10 @@ export function ClientsPage() {
                       <TableCell onClick={() => handleViewClient(client.id)}>
                         <div className="flex items-center gap-3">
                           <Avatar>
-                            <AvatarImage src={client.logo || "/placeholder.svg"} alt={client.name} />
-                            <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
+                            {client.logo && (
+                  <AvatarImage src={client.logo} alt={client.name} />
+                )}
+                            <AvatarFallback>{generateInitials(client.name)}</AvatarFallback>
                           </Avatar>
                           <div className="font-medium">{client.name}</div>
                         </div>
@@ -403,8 +406,10 @@ export function ClientsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage src={client.logo || "/placeholder.svg"} alt={client.name} />
-                        <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
+                        {client.logo && (
+                  <AvatarImage src={client.logo} alt={client.name} />
+                )}
+                        <AvatarFallback>{generateInitials(client.name)}</AvatarFallback>
                       </Avatar>
                       <CardTitle className="text-lg">{client.name}</CardTitle>
                     </div>
