@@ -38,8 +38,34 @@ export function ProtectedRoute({
     }
   }, [user, profile, loading, router, allowedRoles, redirectTo])
 
-  // Always render children immediately - no more blocking loading screens!
-  // Auth redirects happen in the background via useEffect
-  console.log('🛡️ ProtectedRoute: Rendering children immediately (non-blocking)')
+  // Show loading state while authentication is being checked
+  if (loading) {
+    console.log('🛡️ ProtectedRoute: Authentication loading, showing loading state')
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render anything if user is not authenticated (redirect will happen via useEffect)
+  if (!user) {
+    console.log('🛡️ ProtectedRoute: No user, preventing content flash before redirect')
+    return null
+  }
+
+  // Check role requirements
+  if (allowedRoles && allowedRoles.length > 0 && profile) {
+    if (!allowedRoles.includes(profile.role)) {
+      console.log('🛡️ ProtectedRoute: Role not allowed, preventing content flash before redirect')
+      return null
+    }
+  }
+
+  // Only render children if user is authenticated and authorized
+  console.log('🛡️ ProtectedRoute: User authenticated, rendering protected content')
   return <>{children}</>
 } 
