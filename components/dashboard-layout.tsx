@@ -18,8 +18,17 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/components/auth-provider"
 import { Sidebar } from "@/components/sidebar"
 import { PerformanceMonitor } from "@/components/performance-monitor"
+import { DebugInfo } from "@/components/debug-info"
 
-export function DashboardLayout({ children }: { children: ReactNode }) {
+interface DashboardLayoutProps {
+  children: ReactNode
+  debugData?: {
+    loading?: boolean
+    error?: string | null
+  }
+}
+
+export function DashboardLayout({ children, debugData }: DashboardLayoutProps) {
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
@@ -115,6 +124,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
       
       <PerformanceMonitor />
+      <DebugInfo dataLoading={debugData?.loading} error={debugData?.error} />
     </div>
   )
 }

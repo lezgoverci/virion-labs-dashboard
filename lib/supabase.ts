@@ -491,23 +491,25 @@ export type Database = {
   }
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+// Optimized configuration for free tier
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
   },
-  global: {
-    headers: {
-      'x-client-info': 'virion-labs-dashboard'
-    }
-  },
   db: {
     schema: 'public'
   },
+  global: {
+    headers: {
+      'x-my-custom-header': 'virion-labs-dashboard'
+    }
+  },
+  // Optimize for free tier limitations
   realtime: {
     params: {
-      eventsPerSecond: 10
+      eventsPerSecond: 2 // Reduce real-time events
     }
   }
 })

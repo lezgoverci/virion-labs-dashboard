@@ -13,6 +13,7 @@ interface PerformanceMetrics {
 }
 
 export function PerformanceMonitor() {
+  const [mounted, setMounted] = useState(false)
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     loadTime: 0,
     renderTime: 0,
@@ -22,6 +23,8 @@ export function PerformanceMonitor() {
   })
 
   useEffect(() => {
+    setMounted(true)
+    
     // Monitor performance metrics
     const startTime = performance.now()
     
@@ -53,6 +56,11 @@ export function PerformanceMonitor() {
 
   // Only show in development
   if (process.env.NODE_ENV !== 'development') {
+    return null
+  }
+
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
     return null
   }
 

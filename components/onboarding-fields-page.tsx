@@ -27,47 +27,48 @@ export function OnboardingFieldsPage() {
   const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState("fields")
   const [showAddField, setShowAddField] = useState(false)
-  const [editingField, setEditingField] = useState(null)
+  const [editingField, setEditingField] = useState<any>(null)
   const [fields, setFields] = useState(defaultFields)
 
-  const handleMoveUp = (index) => {
-    if (index === 0) return
-    const newFields = [...fields]
-    const temp = newFields[index]
-    newFields[index] = newFields[index - 1]
-    newFields[index - 1] = temp
-    setFields(newFields)
+  const handleMoveUp = (index: number) => {
+    if (index > 0) {
+      const newFields = [...fields]
+      const temp = newFields[index]
+      newFields[index] = newFields[index - 1]
+      newFields[index - 1] = temp
+      setFields(newFields)
+    }
   }
 
-  const handleMoveDown = (index) => {
-    if (index === fields.length - 1) return
-    const newFields = [...fields]
-    const temp = newFields[index]
-    newFields[index] = newFields[index + 1]
-    newFields[index + 1] = temp
-    setFields(newFields)
+  const handleMoveDown = (index: number) => {
+    if (index < fields.length - 1) {
+      const newFields = [...fields]
+      const temp = newFields[index]
+      newFields[index] = newFields[index + 1]
+      newFields[index + 1] = temp
+      setFields(newFields)
+    }
   }
 
-  const handleToggleRequired = (index) => {
+  const handleToggleRequired = (index: number) => {
     const newFields = [...fields]
     newFields[index].required = !newFields[index].required
     setFields(newFields)
   }
 
-  const handleToggleEnabled = (index) => {
+  const handleToggleEnabled = (index: number) => {
     const newFields = [...fields]
     newFields[index].enabled = !newFields[index].enabled
     setFields(newFields)
   }
 
-  const handleEditField = (field) => {
+  const handleEditField = (field: any) => {
     setEditingField(field)
     setShowAddField(true)
   }
 
-  const handleDeleteField = (index) => {
-    const newFields = [...fields]
-    newFields.splice(index, 1)
+  const handleDeleteField = (index: number) => {
+    const newFields = fields.filter((_, i) => i !== index)
     setFields(newFields)
   }
 

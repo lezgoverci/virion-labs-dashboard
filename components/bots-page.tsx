@@ -213,72 +213,72 @@ export function BotsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="bot-prefix">Command Prefix</Label>
-                    <Input 
-                      id="bot-prefix" 
-                      placeholder="!"
-                      value={formData.prefix}
-                      onChange={(e) => setFormData(prev => ({ ...prev, prefix: e.target.value }))}
+                    <Input
+                      id="prefix"
+                      placeholder="e.g., !virion"
+                      value={formData.prefix || ''}
+                      onChange={(e) => setFormData({ ...formData, prefix: e.target.value })}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="bot-description">Description</Label>
-                  <Textarea 
-                    id="bot-description" 
+                  <Textarea
+                    id="description"
                     placeholder="Describe what this bot does..."
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="discord-bot-id">Discord Application ID</Label>
-                  <Input 
-                    id="discord-bot-id" 
-                    placeholder="123456789012345678"
-                    value={formData.discord_bot_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discord_bot_id: e.target.value }))}
+                  <Input
+                    id="discord_bot_id"
+                    placeholder="Your Discord bot ID"
+                    value={formData.discord_bot_id || ''}
+                    onChange={(e) => setFormData({ ...formData, discord_bot_id: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="bot-token">Discord Bot Token</Label>
-                  <Input 
-                    id="bot-token" 
+                  <Input
+                    id="discord_token"
                     type="password"
-                    placeholder="Enter Discord bot token"
-                    value={formData.discord_token}
-                    onChange={(e) => setFormData(prev => ({ ...prev, discord_token: e.target.value }))}
+                    placeholder="Your Discord bot token"
+                    value={formData.discord_token || ''}
+                    onChange={(e) => setFormData({ ...formData, discord_token: e.target.value })}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="avatar-url">Avatar URL</Label>
-                    <Input 
-                      id="avatar-url" 
-                      placeholder="https://..."
-                      value={formData.avatar_url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
+                    <Input
+                      id="avatar_url"
+                      placeholder="Bot avatar URL (optional)"
+                      value={formData.avatar_url || ''}
+                      onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="webhook-url">Webhook URL</Label>
-                    <Input 
-                      id="webhook-url" 
-                      placeholder="https://..."
-                      value={formData.webhook_url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, webhook_url: e.target.value }))}
+                    <Input
+                      id="webhook_url"
+                      placeholder="Discord webhook URL (optional)"
+                      value={formData.webhook_url || ''}
+                      onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Switch 
-                    id="auto-deploy" 
-                    checked={formData.auto_deploy}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_deploy: checked }))}
+                  <Switch
+                    id="auto_deploy"
+                    checked={formData.auto_deploy === true}
+                    onCheckedChange={(checked) => setFormData({ ...formData, auto_deploy: checked })}
                   />
                   <Label htmlFor="auto-deploy">Auto-deploy after creation</Label>
                 </div>
