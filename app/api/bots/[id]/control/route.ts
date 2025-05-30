@@ -16,7 +16,7 @@ interface ControlParams {
 export async function POST(request: NextRequest, { params }: ControlParams) {
   try {
     const { action } = await request.json()
-    const botId = params.id
+    const { id: botId } = await params
 
     if (!action || !['start', 'stop', 'restart'].includes(action)) {
       return NextResponse.json(

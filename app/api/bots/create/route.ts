@@ -7,7 +7,7 @@ const DISCORD_API_BASE = 'https://discord.com/api/v10'
 // Initialize Supabase client for server-side operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for server-side operations
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 export async function POST(request: NextRequest) {
@@ -21,13 +21,23 @@ export async function POST(request: NextRequest) {
       description,
       auto_deploy = false,
       avatar_url,
-      webhook_url
+      webhook_url,
+      discord_application_id,
+      discord_bot_token
     } = body
 
     // Validate required fields
     if (!name || !client_id || !template) {
       return NextResponse.json(
         { error: 'Missing required fields: name, client_id, template' },
+        { status: 400 }
+      )
+    }
+
+    // For now, we'll require manual Discord application details
+    if (!discord_application_id || !discord_bot_token) {
+      return NextResponse.json(
+        { error: 'Missing Discord application details. Please provide discord_application_id and discord_bot_token' },
         { status: 400 }
       )
     }
@@ -47,21 +57,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get Discord bot token from environment
-    const discordBotToken = process.env.DISCORD_BOT_TOKEN
-    if (!discordBotToken) {
+    // Validate the Discord bot token by testing it
+    const isValidToken = await validateDiscordBotToken(discord_bot_token, discord_application_id)
+    if (!isValidToken) {
       return NextResponse.json(
-        { error: 'Discord bot token not configured' },
-        { status: 500 }
-      )
-    }
-
-    // Create Discord application
-    const discordApp = await createDiscordApplication(name, description, discordBotToken)
-    if (!discordApp) {
-      return NextResponse.json(
-        { error: 'Failed to create Discord application' },
-        { status: 500 }
+        { error: 'Invalid Discord bot token or application ID' },
+        { status: 400 }
       )
     }
 
@@ -71,14 +72,14 @@ export async function POST(request: NextRequest) {
       .insert({
         name,
         client_id,
-        discord_bot_id: discordApp.id,
-        discord_token: discordApp.bot.token,
+        discord_bot_id: discord_application_id,
+        discord_token: discord_bot_token,
         template,
         prefix,
         description,
         auto_deploy,
         status: 'Offline', // Bots start offline until deployed
-        invite_url: `https://discord.com/api/oauth2/authorize?client_id=${discordApp.id}&permissions=8&scope=bot`,
+        invite_url: `https://discord.com/api/oauth2/authorize?client_id=${discord_application_id}&permissions=8&scope=bot`,
         avatar_url,
         webhook_url
       })
@@ -86,8 +87,6 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError || !botData) {
-      // Cleanup Discord app if database save fails
-      await deleteDiscordApplication(discordApp.id, discordBotToken)
       return NextResponse.json(
         { error: 'Failed to save bot to database: ' + (dbError?.message || 'Unknown error') },
         { status: 500 }
@@ -117,9 +116,9 @@ export async function POST(request: NextRequest) {
       success: true,
       bot: botData,
       discord_app: {
-        id: discordApp.id,
-        name: discordApp.name,
-        invite_url: `https://discord.com/api/oauth2/authorize?client_id=${discordApp.id}&permissions=8&scope=bot`
+        id: discord_application_id,
+        name: name,
+        invite_url: `https://discord.com/api/oauth2/authorize?client_id=${discord_application_id}&permissions=8&scope=bot`
       }
     })
 
@@ -132,62 +131,32 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function createDiscordApplication(name: string, description: string, botToken: string) {
+async function validateDiscordBotToken(token: string, applicationId: string) {
   try {
-    // Create Discord application
-    const appResponse = await fetch(`${DISCORD_API_BASE}/applications`, {
-      method: 'POST',
+    // Test the bot token by getting application info
+    const response = await fetch(`https://discord.com/api/v10/applications/@me`, {
       headers: {
-        'Authorization': `Bot ${botToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name,
-        description: description || `${name} - Referral bot created by Virion Labs`
-      })
-    })
-
-    if (!appResponse.ok) {
-      throw new Error(`Discord API error: ${appResponse.status}`)
-    }
-
-    const application = await appResponse.json()
-
-    // Create bot user for the application
-    const botResponse = await fetch(`${DISCORD_API_BASE}/applications/${application.id}/bot`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bot ${botToken}`,
+        'Authorization': `Bot ${token}`,
         'Content-Type': 'application/json'
       }
     })
 
-    if (!botResponse.ok) {
-      throw new Error(`Discord Bot creation error: ${botResponse.status}`)
+    if (!response.ok) {
+      console.error('Discord token validation failed:', response.status)
+      return false
     }
 
-    const bot = await botResponse.json()
-
-    return {
-      ...application,
-      bot
+    const appData = await response.json()
+    
+    // Verify the application ID matches
+    if (appData.id !== applicationId) {
+      console.error('Application ID mismatch')
+      return false
     }
-  } catch (error) {
-    console.error('Error creating Discord application:', error)
-    return null
-  }
-}
 
-async function deleteDiscordApplication(applicationId: string, botToken: string) {
-  try {
-    await fetch(`${DISCORD_API_BASE}/applications/${applicationId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bot ${botToken}`,
-        'Content-Type': 'application/json'
-      }
-    })
+    return true
   } catch (error) {
-    console.error('Error deleting Discord application:', error)
+    console.error('Error validating Discord token:', error)
+    return false
   }
 } 
