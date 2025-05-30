@@ -37,6 +37,8 @@ export type Database = {
           uptime_percentage: number | null
           users: number | null
           webhook_url: string | null
+          deployment_id: string | null
+          server_endpoint: string | null
         }
         Insert: {
           auto_deploy?: boolean | null
@@ -59,6 +61,8 @@ export type Database = {
           uptime_percentage?: number | null
           users?: number | null
           webhook_url?: string | null
+          deployment_id?: string | null
+          server_endpoint?: string | null
         }
         Update: {
           auto_deploy?: boolean | null
@@ -81,6 +85,8 @@ export type Database = {
           uptime_percentage?: number | null
           users?: number | null
           webhook_url?: string | null
+          deployment_id?: string | null
+          server_endpoint?: string | null
         }
         Relationships: [
           {

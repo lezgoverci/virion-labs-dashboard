@@ -19,7 +19,10 @@ import {
   Power,
   Settings,
   Shield,
-  Zap
+  Zap,
+  Play,
+  Square,
+  RotateCcw
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -53,7 +56,7 @@ interface BotDetailPageProps {
 
 export function BotDetailPage({ botId, initialEditMode = false }: BotDetailPageProps) {
   const router = useRouter()
-  const { getBotById, updateBot, deleteBot, formatDate, formatLastOnline, getStatusVariant } = useBots()
+  const { getBotById, updateBot, deleteBot, controlBot, formatDate, formatLastOnline, getStatusVariant } = useBots()
   const { clients } = useClients()
   const { toast } = useToast()
   
@@ -61,7 +64,8 @@ export function BotDetailPage({ botId, initialEditMode = false }: BotDetailPageP
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isEditMode, setIsEditMode] = useState(initialEditMode)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isSaving, setSaving] = useState(false)
+  const [isControlling, setIsControlling] = useState(false)
   
   // Form state for editing
   const [formData, setFormData] = useState<Partial<BotUpdate>>({})
@@ -122,7 +126,7 @@ export function BotDetailPage({ botId, initialEditMode = false }: BotDetailPageP
     }
 
     try {
-      setIsSaving(true)
+      setSaving(true)
       
       const { data, error } = await updateBot(botId, formData)
       
@@ -142,7 +146,32 @@ export function BotDetailPage({ botId, initialEditMode = false }: BotDetailPageP
         variant: "destructive"
       })
     } finally {
-      setIsSaving(false)
+      setSaving(false)
+    }
+  }
+
+  const handleControl = async (action: 'start' | 'stop' | 'restart') => {
+    try {
+      setIsControlling(true)
+      
+      const { data, error } = await controlBot(botId, action)
+      
+      if (error) throw new Error(error)
+      
+      setBot(data)
+      
+      toast({
+        title: "Success",
+        description: `Bot ${action} completed successfully`,
+      })
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'An error occurred',
+        variant: "destructive"
+      })
+    } finally {
+      setIsControlling(false)
     }
   }
 
@@ -268,24 +297,60 @@ export function BotDetailPage({ botId, initialEditMode = false }: BotDetailPageP
       </div>
 
       {/* Status and Quick Actions */}
-      <div className="flex items-center gap-4">
-        <Badge variant={getStatusVariant(bot.status) as any} className="text-sm">
-          {bot.status}
-        </Badge>
-        {bot.invite_url && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={bot.invite_url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-2 h-3 w-3" />
-              Invite Bot
-            </a>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Badge variant={getStatusVariant(bot.status) as any} className="text-sm">
+            {bot.status}
+          </Badge>
+          {bot.invite_url && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={bot.invite_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-3 w-3" />
+                Invite Bot
+              </a>
+            </Button>
+          )}
+          {bot.discord_bot_id && (
+            <Button variant="outline" size="sm" onClick={() => copyToClipboard(bot.discord_bot_id)}>
+              <Copy className="mr-2 h-3 w-3" />
+              Copy Bot ID
+            </Button>
+          )}
+        </div>
+        
+        {/* Bot Control Buttons */}
+        <div className="flex gap-2">
+          {bot.status === 'Offline' ? (
+            <Button 
+              size="sm" 
+              onClick={() => handleControl('start')} 
+              disabled={isControlling}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Play className="mr-2 h-3 w-3" />
+              {isControlling ? 'Starting...' : 'Start'}
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleControl('stop')} 
+              disabled={isControlling}
+            >
+              <Square className="mr-2 h-3 w-3" />
+              {isControlling ? 'Stopping...' : 'Stop'}
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleControl('restart')} 
+            disabled={isControlling}
+          >
+            <RotateCcw className="mr-2 h-3 w-3" />
+            {isControlling ? 'Restarting...' : 'Restart'}
           </Button>
-        )}
-        {bot.discord_bot_id && (
-          <Button variant="outline" size="sm" onClick={() => copyToClipboard(bot.discord_bot_id)}>
-            <Copy className="mr-2 h-3 w-3" />
-            Copy Bot ID
-          </Button>
-        )}
+        </div>
       </div>
 
       {/* Main Content Grid */}

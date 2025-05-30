@@ -44,15 +44,12 @@ export function BotsPage() {
   const [formData, setFormData] = useState<Partial<BotInsert>>({
     name: "",
     client_id: "",
-    discord_bot_id: "",
-    discord_token: "",
     template: "standard",
     prefix: "!",
     description: "",
     auto_deploy: false,
     webhook_url: "",
-    avatar_url: "",
-    invite_url: ""
+    avatar_url: ""
   })
 
   const filteredBots = bots
@@ -93,6 +90,15 @@ export function BotsPage() {
       return
     }
 
+    setShowAddBot(false) // Close dialog immediately
+    
+    // Show loading toast
+    const loadingToast = toast({
+      title: "Creating Bot",
+      description: "Creating Discord application and deploying bot...",
+      duration: 10000,
+    })
+
     const { error } = await addBot(formData as BotInsert)
     
     if (error) {
@@ -104,21 +110,17 @@ export function BotsPage() {
     } else {
       toast({
         title: "Success",
-        description: "Bot created successfully",
+        description: "Discord bot created and deployed successfully!",
       })
-      setShowAddBot(false)
       setFormData({
         name: "",
         client_id: "",
-        discord_bot_id: "",
-        discord_token: "",
         template: "standard",
         prefix: "!",
         description: "",
         auto_deploy: false,
         webhook_url: "",
-        avatar_url: "",
-        invite_url: ""
+        avatar_url: ""
       })
     }
   }
@@ -232,25 +234,11 @@ export function BotsPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="discord-bot-id">Discord Application ID</Label>
-                  <Input
-                    id="discord_bot_id"
-                    placeholder="Your Discord bot ID"
-                    value={formData.discord_bot_id || ''}
-                    onChange={(e) => setFormData({ ...formData, discord_bot_id: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bot-token">Discord Bot Token</Label>
-                  <Input
-                    id="discord_token"
-                    type="password"
-                    placeholder="Your Discord bot token"
-                    value={formData.discord_token || ''}
-                    onChange={(e) => setFormData({ ...formData, discord_token: e.target.value })}
-                  />
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> A Discord application will be automatically created for this bot. 
+                    You don't need to provide Discord credentials manually.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
